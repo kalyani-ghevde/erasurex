@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ErasureX — Adaptive Sanitization & IT Asset Trust Platform</title>
+<link rel="stylesheet" href="css/styles.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" defer></script>
+</head>
+<body>
+  <!-- -------- -->
+  <script>
+    // Protect dashboard
+    if (localStorage.getItem("erasurexLoggedIn") !== "true") {
+        window.location.href = "login.html";
+    }
+</script>
+<!-- -------------- -->
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">EX</div>
+      <div>
+        <div class="brand-name">ErasureX</div>
+        <div class="brand-sub">Asset Trust Platform</div>
+      </div>
+    </div>
+  
+
+  <nav class="nav">
+
+  <button class="nav-item active" data-view="dashboard">
+    <i data-ic="grid"></i> Dashboard
+  </button>
+
+  <button class="nav-item" data-view="scan">
+    <i data-ic="scan"></i> Scan Devices
+  </button>
+
+  <button class="nav-item" data-view="reports">
+    <i data-ic="list"></i> Reports &amp; Audit
+  </button>
+
+  <button class="nav-item" data-view="verify">
+    <i data-ic="shield"></i> Verification Portal
+  </button>
+
+  <button class="about-btn" type="button"
+          onclick="window.location.href='./about.html'">
+    About Us
+  </button>
+
+  <button class="logout-btn" type="button"
+          onclick="logout()">
+    Logout
+  </button>
+
+</nav>
+
+
+
+    <div class="sidebar-footer">
+      <div class="tagline">WIPE → VERIFY → PROVE<br>→ TRACK → REUSE</div>
+      <div class="offline-badge"><span class="pulse-dot"></span> Offline-first engine ready</div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- ===================== DASHBOARD ===================== -->
+    <section class="view active" id="view-dashboard">
+      <header class="topbar">
+        <div>
+          <h1>Dashboard</h1>
+          <p class="muted">Live overview of sanitization activity and asset trust status</p>
+        </div>
+        <button class="btn primary" data-goto="scan">+ New Sanitization</button>
+      </header>
+
+      <div class="cards">
+        <div class="stat-card">
+          <div class="stat-label">Devices processed</div>
+          <div class="stat-value" id="stat-total">0</div>
+          <div class="stat-trend">All time</div>
+        </div>
+        <div class="stat-card pass">
+          <div class="stat-label">Certificates issued</div>
+          <div class="stat-value" id="stat-pass">0</div>
+          <div class="stat-trend">PASS · signed &amp; verifiable</div>
+        </div>
+        <div class="stat-card fail">
+          <div class="stat-label">Failed validations</div>
+          <div class="stat-value" id="stat-fail">0</div>
+          <div class="stat-trend">No proof = no certificate</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Trust score</div>
+          <div class="stat-value" id="stat-rate">—</div>
+          <div class="stat-trend">Pass rate</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="panel">
+          <h3>Pass / fail distribution</h3>
+          <div id="chart-wrap"><canvas id="chart-passfail" height="180"></canvas></div>
+        </div>
+        <div class="panel">
+          <h3>Recent activity</h3>
+          <div id="recent-activity" class="activity-list">
+            <p class="muted small">No sanitization events yet. Start by scanning a device.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== SCAN ===================== -->
+    <section class="view" id="view-scan">
+      <header class="topbar">
+        <div>
+          <h1>Scan devices</h1>
+          <p class="muted">Detect connected storage media via USB · SATA · NVMe · OTG</p>
+        </div>
+        <button class="btn primary" id="btn-scan">Scan for devices</button>
+      </header>
+
+      <div id="scan-empty" class="empty-state">
+        <div class="empty-icon"><i data-ic="scan" data-size="32"></i></div>
+        <p>No devices detected yet.</p>
+        <p class="muted small">Connect a drive and click "Scan for devices" to begin.</p>
+      </div>
+
+      <div id="scan-loading" class="hidden empty-state">
+        <div class="spinner"></div>
+        <p>Scanning bus for connected media…</p>
+      </div>
+
+      <div id="device-list" class="device-grid hidden"></div>
+    </section>
+
+    <!-- ===================== DEVICE DETAIL / ANALYSIS ===================== -->
+    <section class="view" id="view-detail">
+      <header class="topbar">
+        <div>
+          <h1>Capability analysis</h1>
+          <p class="muted">Review device profile and recommended sanitization method</p>
+        </div>
+        <button class="btn ghost" data-goto="scan">← Back to devices</button>
+      </header>
+
+      <div class="grid-2">
+        <div class="panel" id="device-profile"></div>
+        <div class="panel">
+          <h3>Recommended method</h3>
+          <div id="method-card" class="method-card"></div>
+          <button class="btn primary full" id="btn-start-wipe">Start sanitization</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== WIPE PROGRESS ===================== -->
+    <section class="view" id="view-wipe">
+      <header class="topbar">
+        <div>
+          <h1>Sanitization in progress</h1>
+          <p class="muted">Offline-first engine · no internet required · secure execution</p>
+        </div>
+      </header>
+
+      <div class="panel">
+        <div class="progress-head">
+          <span id="wipe-device-name">—</span>
+          <span id="wipe-pct">0%</span>
+        </div>
+        <div class="progress-track"><div class="progress-fill" id="wipe-fill"></div></div>
+        <div class="console" id="wipe-log"></div>
+      </div>
+    </section>
+
+    <!-- ===================== VALIDATION RESULT ===================== -->
+    <section class="view" id="view-result">
+      <header class="topbar">
+        <div><h1>Independent validation</h1><p class="muted">Verifying sanitization against source device</p></div>
+      </header>
+      <div class="panel result-panel" id="result-panel"></div>
+    </section>
+
+    <!-- ===================== CERTIFICATE ===================== -->
+    <section class="view" id="view-certificate">
+      <header class="topbar">
+        <div><h1>Digital certificate</h1><p class="muted">Cryptographically signed proof of sanitization</p></div>
+        <div class="btn-row">
+          <button class="btn ghost" id="btn-print-cert">Print / Save PDF</button>
+          <button class="btn primary" data-goto="dashboard">Done</button>
+        </div>
+      </header>
+      <div class="certificate" id="certificate-box"></div>
+    </section>
+
+    <!-- ===================== REPORTS ===================== -->
+    <section class="view" id="view-reports">
+      <header class="topbar">
+        <div><h1>Reports &amp; audit log</h1><p class="muted">Full chain-of-custody history for every processed asset</p></div>
+        <button class="btn ghost" id="btn-export-csv">Export CSV</button>
+      </header>
+      <div class="panel">
+        <table class="table" id="reports-table">
+          <thead>
+            <tr><th>Certificate ID</th><th>Device</th><th>Method</th><th>Result</th><th>Date</th><th></th></tr>
+          </thead>
+          <tbody id="reports-tbody"></tbody>
+        </table>
+        <p class="muted small" id="reports-empty">No records yet.</p>
+      </div>
+    </section>
+
+    <!-- ===================== VERIFY PORTAL ===================== -->
+    <section class="view" id="view-verify">
+      <header class="topbar">
+        <div><h1>Public verification portal</h1><p class="muted">Anyone can verify a certificate — no login required</p></div>
+      </header>
+      <div class="panel verify-panel">
+        <label class="field-label">Certificate ID</label>
+        <div class="verify-row">
+          <input type="text" id="verify-input" placeholder="e.g. EX-7F3A9C21">
+          <button class="btn primary" id="btn-verify">Verify</button>
+        </div>
+        <div id="verify-result"></div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script src="js/data.js"></script>
+<script src="js/icons.js"></script>
+<script src="js/qr.js"></script>
+<script src="js/app.js"></script>
+
+<script>
+function logout() {
+    localStorage.removeItem("erasurexLoggedIn");
+    localStorage.removeItem("erasurexCurrentUser");
+
+    window.location.href = "login.html";
+}
+</script>
+
+
+
+</body>
+</html>
